@@ -250,7 +250,7 @@ void ASpartaCharacter::UnslowSpeed(float Value)
 
 void ASpartaCharacter::Blind(float Value)
 {
-	SpringArmComp->bUsePawnControlRotation = false;
+	CameraComp->SetActive(false);
 	bIsBlind = true;
 	UpdateOverHeadWidget();
 }
