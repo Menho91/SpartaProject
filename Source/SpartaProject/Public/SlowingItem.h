@@ -13,7 +13,6 @@ public:
 	ASlowingItem();
 
 	virtual void ActivateItem(AActor* Activator) override;
-	void DeactivateEffect();
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Effects")
@@ -21,7 +20,4 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Effects")
 	float SlowingTime = 3.0f;
-
-	FTimerHandle SlowTimerHandle;
-	bool bHasSlowed = false;
 };

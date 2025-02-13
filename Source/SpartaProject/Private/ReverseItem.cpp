@@ -1,13 +1,13 @@
-#include "SlowingItem.h"
+#include "ReverseItem.h"
 #include "SpartaCharacter.h"
 #include "Kismet/GameplayStatics.h"
 
-ASlowingItem::ASlowingItem()
+AReverseItem::AReverseItem()
 {
-	ItemType = "Slow";
+	ItemType = "Reverse";
 }
 
-void ASlowingItem::ActivateItem(AActor* Activator)
+void AReverseItem::ActivateItem(AActor* Activator)
 {
 	Super::ActivateItem(Activator);
 
@@ -19,7 +19,7 @@ void ASlowingItem::ActivateItem(AActor* Activator)
 			{
 				if (ASpartaCharacter* SpartaCharacter = Cast<ASpartaCharacter>(Character))
 				{
-					SpartaCharacter->SlowSpeed(SlowingTime, SlowMultiplier);
+					SpartaCharacter->Reverse(ReverseTime);
 				}
 			}
 		}

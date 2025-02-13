@@ -87,3 +87,25 @@ AActor* ASpawnVolume::SpawnRandomItem()
 	return nullptr;
 }
 
+void ASpawnVolume::SpawnDebuffItem(int32 Count)
+{
+	if (!DebuffItemList) return;
+
+	TArray<FDebuffItemRow*> AllRows;
+	static const FString ContextString(TEXT("DebuffItemContext"));
+	DebuffItemList->GetAllRows(ContextString, AllRows);
+
+	if (AllRows.IsEmpty()) return;
+
+	for (int i = 0; i < Count; i++)
+	{
+		for (FDebuffItemRow* Row : AllRows)
+		{
+			if (UClass* ActualClass = Row->ItemClass.Get())
+			{
+				SpawnItem(ActualClass);
+			}
+		}
+	}
+}
+

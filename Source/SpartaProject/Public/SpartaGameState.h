@@ -4,14 +4,15 @@
 #include "GameFramework/GameState.h"
 #include "SpartaGameState.generated.h"
 
+class ASpartaPlayerController;
+class USpartaGameInstance;
+
 UCLASS()
 class SPARTAPROJECT_API ASpartaGameState : public AGameState
 {
 	GENERATED_BODY()
 
 public:
-	ASpartaGameState();
-
 	virtual void BeginPlay() override;
 
 	UFUNCTION(BlueprintPure, Category = "Score")
@@ -30,6 +31,9 @@ public:
 	void EndLevel();
 
 	void UpdateHUD();
+
+	ASpartaPlayerController* GetSpartaPlayerController() const;
+	USpartaGameInstance* GetSpartaGameInstance() const;
 
 public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Score")

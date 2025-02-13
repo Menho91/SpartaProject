@@ -9,6 +9,7 @@
 #include "Components/TextBlock.h"
 #include "Components/ProgressBar.h"
 #include "Components/Overlay.h"
+#include "Kismet/GameplayStatics.h"
 
 ASpartaCharacter::ASpartaCharacter()
 {
@@ -27,9 +28,8 @@ ASpartaCharacter::ASpartaCharacter()
 
 	NormalSpeed = 600.0f;
 	SprintSpeedMultiplier = 1.7f;
-	SprintSpeed = NormalSpeed * SprintSpeedMultiplier;
-
-	GetCharacterMovement()->MaxWalkSpeed = NormalSpeed;
+	SpeedMultiplier = 1.0f;
+	SetCharacterSpeed();
 }
 
 int32 ASpartaCharacter::GetHealth() const
@@ -42,6 +42,12 @@ void ASpartaCharacter::AddHealth(int32 Amount)
 	Health = FMath::Clamp(Health + Amount, 0, MaxHealth);
 	
 	UpdateHPWidget();
+}
+
+void ASpartaCharacter::SetCharacterSpeed()
+{
+	SprintSpeed = NormalSpeed * SprintSpeedMultiplier * SpeedMultiplier;
+	GetCharacterMovement()->MaxWalkSpeed = NormalSpeed * SpeedMultiplier;
 }
 
 void ASpartaCharacter::BeginPlay()
@@ -200,76 +206,151 @@ void ASpartaCharacter::UpdateOverHeadWidget()
 			OverHeadWidgetInstance->ProcessEvent(UnBlindFunc, nullptr);
 		}
 	}
-}
 
-void ASpartaCharacter::UpdateHPWidget()
-{
-	if (APlayerController* PlayerController = GetWorld()->GetFirstPlayerController())
+	if (bIsReverse)
 	{
-		if (ASpartaPlayerController* SpartaPlayerController = Cast<ASpartaPlayerController>(PlayerController))
+		UFunction* ReverseFunc = OverHeadWidgetInstance->FindFunction(FName("ReverseFunction"));
+		if (ReverseFunc)
 		{
-			if (UUserWidget* HUDWidget = SpartaPlayerController->GetHUDWidget())
-			{
-				if (UProgressBar* HPBar = Cast<UProgressBar>(HUDWidget->GetWidgetFromName(TEXT("HPBar"))))
-				{
-					HPBar->SetPercent(static_cast<float>(Health) / static_cast<float>(MaxHealth));
-				}
-
-				if (UTextBlock* HPText = Cast<UTextBlock>(HUDWidget->GetWidgetFromName(TEXT("HPText"))))
-				{
-					HPText->SetText(FText::FromString(FString::Printf(TEXT("%d"), Health)));
-				}
-
-				UFunction* PlayAnimFunc = HUDWidget->FindFunction(FName("PlayDamageAnim"));
-				if (PlayAnimFunc)
-				{
-					HUDWidget->ProcessEvent(PlayAnimFunc, nullptr);
-				}
-			}
+			OverHeadWidgetInstance->ProcessEvent(ReverseFunc, nullptr);
+		}
+	}
+	else
+	{
+		UFunction* UnReverseFunc = OverHeadWidgetInstance->FindFunction(FName("UnReverseFunction"));
+		if (UnReverseFunc)
+		{
+			OverHeadWidgetInstance->ProcessEvent(UnReverseFunc, nullptr);
 		}
 	}
 }
 
-void ASpartaCharacter::SlowSpeed(float Value)
+void ASpartaCharacter::UpdateHPWidget()
+{
+	if (ASpartaPlayerController* SpartaPlayerController = GetSpartaPlayerController())
+	{
+		if (UUserWidget* HUDWidget = SpartaPlayerController->GetHUDWidget())
+		{
+			if (UProgressBar* HPBar = Cast<UProgressBar>(HUDWidget->GetWidgetFromName(TEXT("HPBar"))))
+			{
+				HPBar->SetPercent(static_cast<float>(Health) / static_cast<float>(MaxHealth));
+			}
+
+			if (UTextBlock* HPText = Cast<UTextBlock>(HUDWidget->GetWidgetFromName(TEXT("HPText"))))
+			{
+				HPText->SetText(FText::FromString(FString::Printf(TEXT("%d"), Health)));
+			}
+
+			UFunction* PlayAnimFunc = HUDWidget->FindFunction(FName("PlayDamageAnim"));
+			if (PlayAnimFunc)
+			{
+				HUDWidget->ProcessEvent(PlayAnimFunc, nullptr);
+			}
+		}
+	}
+
+}
+
+ASpartaPlayerController* ASpartaCharacter::GetSpartaPlayerController() const
+{
+	return Cast<ASpartaPlayerController>(UGameplayStatics::GetPlayerController(GetWorld(), 0));
+}
+
+void ASpartaCharacter::SlowSpeed(float Time, float Multiplier)
 {
 	SlowCount++;
-	NormalSpeed *= Value;
-	SprintSpeed = NormalSpeed * SprintSpeedMultiplier;
-	GetCharacterMovement()->MaxWalkSpeed = NormalSpeed;
+	SpeedMultiplier *= Multiplier;
+	SetCharacterSpeed();
+
+	GetWorld()->GetTimerManager().SetTimer(
+		SlowTimerHandle,
+		this,
+		&ASpartaCharacter::UnslowSpeed,
+		Time,
+		false
+	);
+
 	UpdateOverHeadWidget();
 }
 
-void ASpartaCharacter::UnslowSpeed(float Value)
+void ASpartaCharacter::UnslowSpeed()
 {
-	SlowCount--;
-	NormalSpeed /= Value;
-	SprintSpeed = NormalSpeed * SprintSpeedMultiplier;
-	GetCharacterMovement()->MaxWalkSpeed = NormalSpeed;
+	SlowCount = FMath::Max(0, SlowCount - 1);
+
+	if (!SlowCount)
+	{
+		SpeedMultiplier = 1.0f;
+		SetCharacterSpeed();
+	}
 	UpdateOverHeadWidget();
 }
 
-void ASpartaCharacter::Blind(float Value)
+void ASpartaCharacter::Blind(float Time)
 {
-	SpringArmComp->bUsePawnControlRotation = false;
-	bIsBlind = true;
+	if (bIsBlind)
+	{
+		GetWorld()->GetTimerManager().ClearTimer(BlindTimerHandle);
+	}
+	else
+	{
+		bIsBlind = true;
+	}
+	
+	GetWorld()->GetTimerManager().SetTimer(
+		BlindTimerHandle,
+		this,
+		&ASpartaCharacter::Unblind,
+		Time,
+		false
+	);
+
 	UpdateOverHeadWidget();
 }
 
 void ASpartaCharacter::Unblind()
 {
-	SpringArmComp->bUsePawnControlRotation = true;
 	bIsBlind = false;
+	UpdateOverHeadWidget();
+}
+
+void ASpartaCharacter::Reverse(float Time)
+{
+	if (bIsReverse)
+	{
+		GetWorld()->GetTimerManager().ClearTimer(ReverseTimerHandle);
+	}
+	else
+	{
+		bIsReverse = true;
+	}
+
+	GetWorld()->GetTimerManager().SetTimer(
+		ReverseTimerHandle,
+		this,
+		&ASpartaCharacter::Unreverse,
+		Time,
+		false
+	);
+
+	UpdateOverHeadWidget();
+}
+
+void ASpartaCharacter::Unreverse()
+{
+	bIsReverse = false;
 	UpdateOverHeadWidget();
 }
 
 void ASpartaCharacter::Move(const FInputActionValue& value)
 {
-	if (!Controller)
-	{
-		return;
-	}
+	if (!Controller) return;
 	
-	const FVector2D MoveInput = value.Get<FVector2D>();
+	FVector2D MoveInput = value.Get<FVector2D>();
+
+	if (bIsReverse)
+	{
+		MoveInput *= -1.0f;
+	}
 
 	if (!FMath::IsNearlyZero(MoveInput.X))
 	{
@@ -300,6 +381,11 @@ void ASpartaCharacter::StopJump(const FInputActionValue& value)
 void ASpartaCharacter::Look(const FInputActionValue& value)
 {
 	FVector2D LookInput = value.Get<FVector2D>();
+
+	if (bIsBlind)
+	{
+		LookInput = FVector2D::ZeroVector;
+	}
 
 	AddControllerYawInput(LookInput.X);
 	AddControllerPitchInput(LookInput.Y);

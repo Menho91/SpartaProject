@@ -8,6 +8,7 @@ class USpringArmComponent;
 class UCameraComponent;
 struct FInputActionValue;
 class UWidgetComponent;
+class ASpartaPlayerController;
 
 UCLASS()
 class SPARTAPROJECT_API ASpartaCharacter : public ACharacter
@@ -23,10 +24,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Health")
 	void AddHealth(int32 Amount);
 
-	void SlowSpeed(float Value);
-	void UnslowSpeed(float Value);
-	void Blind(float Value);
+	void SetCharacterSpeed();
+
+	void SlowSpeed(float Time, float Multiplier);
+	void UnslowSpeed();
+	void Blind(float Time);
 	void Unblind();
+	void Reverse(float Time);
+	void Unreverse();
 
 protected:
 	virtual void BeginPlay() override;
@@ -56,6 +61,7 @@ protected:
 	void OnDeath();
 	void UpdateOverHeadWidget();
 	void UpdateHPWidget();
+	ASpartaPlayerController* GetSpartaPlayerController() const;
 
 public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
@@ -68,6 +74,7 @@ public:
 	UWidgetComponent* OverHeadWidget;
 
 	bool bIsBlind = false;
+	bool bIsReverse = false;
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
@@ -76,7 +83,11 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health")
 	int32 Health = MaxHealth;
 
+	float SpeedMultiplier = 1.0f;
+
 	FTimerHandle SlowTimerHandle;
+	FTimerHandle BlindTimerHandle;
+	FTimerHandle ReverseTimerHandle;
 
 private:
 	float NormalSpeed;
