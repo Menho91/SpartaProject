@@ -27,7 +27,7 @@ public:
 	void SetCharacterSpeed();
 
 	void SlowSpeed(float Time, float Multiplier);
-	void UnslowSpeed();
+	void UnslowSpeed(float Multiplier);
 	void Blind(float Time);
 	void Unblind();
 	void Reverse(float Time);
@@ -85,6 +85,7 @@ protected:
 
 	float SpeedMultiplier = 1.0f;
 
+	FTimerDelegate SlowTimerDel;
 	FTimerHandle SlowTimerHandle;
 	FTimerHandle BlindTimerHandle;
 	FTimerHandle ReverseTimerHandle;

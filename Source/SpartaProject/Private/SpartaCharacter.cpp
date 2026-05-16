@@ -262,10 +262,11 @@ void ASpartaCharacter::SlowSpeed(float Time, float Multiplier)
 	SpeedMultiplier *= Multiplier;
 	SetCharacterSpeed();
 
+	SlowTimerDel.BindUFunction(this, FName("UnslowSpeed"), Multiplier);
+
 	GetWorld()->GetTimerManager().SetTimer(
 		SlowTimerHandle,
-		this,
-		&ASpartaCharacter::UnslowSpeed,
+		SlowTimerDel,
 		Time,
 		false
 	);
@@ -273,15 +274,19 @@ void ASpartaCharacter::SlowSpeed(float Time, float Multiplier)
 	UpdateOverHeadWidget();
 }
 
-void ASpartaCharacter::UnslowSpeed()
+void ASpartaCharacter::UnslowSpeed(float Multiplier)
 {
 	SlowCount = FMath::Max(0, SlowCount - 1);
 
 	if (!SlowCount)
 	{
 		SpeedMultiplier = 1.0f;
-		SetCharacterSpeed();
 	}
+	else
+	{
+		SpeedMultiplier /= Multiplier;
+	}
+	SetCharacterSpeed();
 	UpdateOverHeadWidget();
 }
 
